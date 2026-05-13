@@ -1,118 +1,116 @@
 import os
 import sys
+import subprocess
+import re
 from google import genai
-from google.genai import types
-
-# --- SOVEREIGN TOOLKIT ---
-def apply_fuzzy_patch(file_path: str, target_snippet: str, replacement_code: str, mode: str):
-    """
-    The 'Hands': Physically rewrites the broken code on disk.
-    """
-    try:
-        print(f"🛠️  [TOOL EXECUTION] Patching target file: {file_path}")
-        with open(file_path, 'r') as f:
-            content = f.read()
-        
-        if target_snippet not in content:
-            return {"status": "failed", "message": f"Target snippet '{target_snippet}' not found in file."}
-            
-        # Perform the atomic swap
-        new_content = content.replace(target_snippet, replacement_code.strip())
-        
-        with open(file_path, 'w') as f:
-            f.write(new_content)
-            
-        return {"status": "success", "message": f"Successfully patched {file_path}."}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
 
 class SovereignBrain:
-    def __init__(self):
-        # 1. Load the API Key safely from the environment
+    def __init__(self, workspace_path: str):
+        self.workspace_path = workspace_path
         self.api_key = os.environ.get("GEMINI_API_KEY")
         if not self.api_key:
-            print("❌ CRITICAL: GEMINI_API_KEY not found in environment variables.")
-            print("   >> Export it in terminal: export GEMINI_API_KEY='your_key_here'")
+            print("❌ ERROR: GEMINI_API_KEY environment variable missing.")
             sys.exit(1)
             
-        # 2. Initialize the Connection
-        print(f"🔌 Connecting to Google GenAI Network...")
+        print("🔌 Initializing Gemini 2.5 Pro via Unified SDK...")
         self.client = genai.Client(api_key=self.api_key)
-        print("🤖 Sovereign Brain Online. Connection Secure.")
+        print("🤖 System Online. Workspace connected.")
 
-    def diagnose_and_fix(self, file_path: str, error_log: str) -> str:
+    def extract_python_code(self, llm_response: str) -> str:
         """
-        The 'Eyes': Sends the crash data to Gemini 1.5 Pro for analysis.
+        Lobotomy Layer: Extracts pure Python code from within markdown blocks.
+        Strips away all conversational descriptions.
         """
-        print(f"🧠 Uploading error context from {file_path} to Gemini...")
+        pattern = r"```python\s*(.*?)\s*```"
+        match = re.search(pattern, llm_response, re.DOTALL)
         
-        prompt = f"""
-        You are an Autonomous DevOps Agent (Sovereign-CI).
+        if match:
+            print("⚡ REGEX: Successfully extracted pure code block.")
+            return match.group(1).strip()
         
-        CONTEXT:
-        A Python script at '{file_path}' crashed.
-        
-        ERROR LOG:
-        {error_log}
-        
-        TASK:
-        1. Analyze the error.
-        2. If the error is about NVIDIA/CUDA drivers on a Mac/Apple Silicon device, you MUST command the tool 'apply_fuzzy_patch'.
-        3. Provide the specific Python code fix to switch from 'cuda' to 'mps' (Metal Performance Shaders) or 'cpu'.
-        
-        RESPONSE FORMAT:
-        Just give me the reasoning briefly, then say "ACTION: apply_fuzzy_patch" if needed.
+        print("⚠️ REGEX WARNING: No markdown block found. Processing raw text.")
+        return llm_response.strip()
+
+    def run_autonomous_remediation(self, log_filename: str):
         """
+        Step 1: Ingest the raw crash telemetry log.
+        """
+        log_path = os.path.join(self.workspace_path, "src/sovereign_core", log_filename)
+        print(f"📖 Ingesting telemetry data from: {log_path}")
         
         try:
-            response = self.client.models.generate_content(
-                model='gemini-2.5-pro',
-                contents=prompt
-            )
-            return response.text
-        except Exception as e:
-            print(f"❌ API CALL FAILED: {e}")
-            return "Error: Could not reach Gemini."
+            with open(log_path, "r") as f:
+                crash_data = f.read()
+        except FileNotFoundError:
+            print(f"❌ Error log not found at {log_path}")
+            return
 
-    def execute_sovereign_patch(self, file_path: str, error_log: str):
-        """
-        The Loop: Diagnosis -> Decision -> Action.
-        """
-        # 1. Live Thinking Phase
-        raw_diagnosis = self.diagnose_and_fix(file_path, error_log)
-        print("\n--- 🔵 GEMINI THOUGHT STREAM ---")
-        print(raw_diagnosis)
-        print("--------------------------------\n")
+        # Step 2: Construct full context prompt
+        prompt = f"""
+        You are an Autonomous Systems Engineer (Sovereign-CI).
         
-        # 2. Strategic parsing (The "Lobotomy" - forcing action based on thought)
-        if "apply_fuzzy_patch" in raw_diagnosis or "CUDA" in error_log:
-            print("⚡ AGENT DECISION: Patch Required. Engaging Tools...")
-            
-            # In a full agent, Gemini would generate these arguments dynamically.
-            # For this Hackathon "Hook", we hardcode the known fix for the demo stability.
-            target_line = 'device = "cuda"'
-            remedy_code = 'device = "mps" if torch.backends.mps.is_available() else "cpu"'
-            
-            result = apply_fuzzy_patch(file_path, target_line, remedy_code, mode="fuzzy")
-            print(f"🏁 FINAL STATUS: {result['status'].upper()} -> {result['message']}")
-            return result
-        else:
-            print("🟢 AGENT DECISION: No patch logic triggered.")
+        CRASH TRACEBACK DATA:
+        {crash_data}
+        
+        TASK:
+        1. Identify the root dimensional conflict in openfold/model/embedders.py.
+        2. Provide ONLY a valid, complete Python class or module replacement block that updates the self.linear_tf_z_i layer initialization to handle 256 in_features instead of 128.
+        
+        OUTPUT FORMAT:
+        You must encapsulate your code fix inside standard markdown code fences like this:
+        ```python
+        # Code here
+        ```
+        """
 
-# --- LIVE FIRE TEST ---
+        print("🧠 Uploading problem matrix to Gemini 2.5 Pro for analysis...")
+        response = self.client.models.generate_content(
+            model='gemini-2.5-pro',
+            contents=prompt
+        )
+        
+        print("\n--- 🔵 GEMINI REASONING MATRIX ---")
+        print(response.text)
+        print("----------------------------------\n")
+        
+        # Step 3: Pass live model output directly into the staging engine
+        self.stage_mcp_patch_for_review(response.text)
+
+    def stage_mcp_patch_for_review(self, ai_output: str):
+        """
+        Step 4: Clean the output and stage it for repository modification.
+        """
+        # Dynamically clean the AI's output using the regex engine
+        clean_code = self.extract_python_code(ai_output)
+        
+        print("⚡ STAGING PHASE: Initiating local patch isolate...")
+        target_file = "src/sovereign_core/openfold/model/embedders.py"
+        target_path = os.path.join(self.workspace_path, target_file)
+
+        # Write the dynamically generated code directly to disk
+        with open(target_path, "w") as f:
+            f.write(clean_code)
+            
+        print(f"🛠️  File modifications applied locally to: {target_file}")
+        print("\n🔍 --- TARGET CODE MODIFICATIONS (GIT DIFF) ---")
+        
+        # Display the real modifications to the user via a git diff
+        subprocess.run(["git", "--no-paper", "diff", target_file], cwd=self.workspace_path)
+        print("------------------------------------------------\n")
+        
+        # Step 5: User verification prompt
+        user_choice = input("⚠️  Review the diff above. Do you want to commit these changes to your branch history? (yes/no): ")
+        
+        if user_choice.lower() in ["yes", "y"]:
+            print("🚀 Committing changes via local repository engine...")
+            # Explicitly stage the file so Git registers the change for the commit
+            subprocess.run(["git", "add", target_file], cwd=self.workspace_path)
+            subprocess.run(["git", "commit", "-m", "fix(ops): dynamically adjust matrix dimensions inside embedder pipeline"], cwd=self.workspace_path)
+            print("🏁 STATUS: Fix successfully committed to your branch history.")
+        else:
+            print("🛑 Operations paused by user. Modifications remain uncommitted.")
+
 if __name__ == "__main__":
-    # Create a dummy broken file to test the real patch
-    dummy_file = "broken_script.py"
-    with open(dummy_file, "w") as f:
-        f.write('import torch\n# Broken line below\ndevice = "cuda"\nprint(f"Using {device}")')
-    
-    brain = SovereignBrain()
-    
-    # Simulate the crash
-    mock_error = "RuntimeError: Found no NVIDIA driver on your system. Please use CUDA_VISIBLE_DEVICES."
-    
-    # Run
-    brain.execute_sovereign_patch(dummy_file, mock_error)
-    
-    # Clean up
-    # os.remove(dummy_file) # Uncomment to auto-delete after test
+    # Absolute system workspace anchor
+    engine = SovereignBrain(workspace_path="/Users/admin_m3_1/Desktop/sovereign_project")
+    engine.run_autonomous_remediation("openfold_crash.log")

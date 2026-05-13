@@ -1,0 +1,25 @@
+stages:
+  - test
+  - remediation
+
+# Run the OpenFold Simulation and catch the crash dump
+simulate_pipeline_run:
+  stage: test
+  image: python:3.11-slim
+  script:
+    - pip install torch --extra-index-url https://pytorch.org
+    - python3 src/sovereign_core/openfold/model/embedders.py || true
+  artifacts:
+    paths:
+      - src/sovereign_core/openfold_crash.log
+
+# Trigger Sovereign-CI to auto-patch the repo upon failure detection
+execute_sovereign_ci:
+  stage: remediation
+  image: python:3.11-slim
+  variables:
+    GEMINI_API_KEY: $GEMINI_API_KEY
+  script:
+    - pip install google-genai
+    - python3 src/sovereign_core/brain.py <<< "yes" # Automatically sends "yes" to the prompt
+
