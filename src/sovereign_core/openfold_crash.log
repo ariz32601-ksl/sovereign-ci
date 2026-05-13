@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/Users/admin_m3_1/Desktop/openfold/sovereign_benchmark.py", line 77, in <module>
+    benchmark_fold()
+  File "/Users/admin_m3_1/Desktop/openfold/sovereign_benchmark.py", line 70, in benchmark_fold
+    out = model(batch)
+  File "/Users/admin_m3_1/Desktop/openfold/openfold/model/embedders.py", line 132, in forward
+    tf_emb_i = self.linear_tf_z_i(tf)
+  File "/Users/admin_m3_1/Desktop/openfold/openfold/model/primitives.py", line 226, in forward
+    return nn.functional.linear(input, self.weight, self.bias)
+RuntimeError: linear(): input and weight.T shapes cannot be multiplied (1x256 and 22x128)
