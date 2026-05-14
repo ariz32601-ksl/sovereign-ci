@@ -1,72 +1,91 @@
-class TemplateEmbedder(nn.Module):
+import torch
+import torch.nn as nn
+from openfold.model.primitives import Linear
+from openfold.model.embedders import (
+    TemplatePairEmbedder,
+    TemplatePointwiseAttention,
+)
+
+
+class TemplateEmbedding(nn.Module):
     """
-    Embeds template features. Uses the TemplatePairEmbedder.
-    
-    Implements Algorithm 17.
+    Embeds template features.
+
+    Implements Algorithm 18.
     """
-    def __init__(self, c):
-        super(TemplateEmbedder, self).__init__()
-        
+
+    def __init__(self, c, **kwargs):
+        super(TemplateEmbedding, self).__init__()
+
         self.c = c
 
-        self.template_pair_embedder = TemplatePairEmbedder(c)
-        
-        # SOVEREIGN-CI PATCH:
-        # The traceback indicates the input feature dimension is 256,
-        # but the layer was initialized with c.d_t (22).
-        # Hardcoding the correct in_features dimension to 256.
-        template_feature_dim = 256
+        self.template_pair_embedder = TemplatePairEmbedder(
+            self.c.template
+        )
+        self.template_pointwise_attention = TemplatePointwiseAttention(
+            c=self.c.template,
+        )
 
+        # The input feature dimension from the traceback is 256.
+        # This layer and others processing the same tensor must be updated
+        # from the incorrect config value to 256.
         self.linear_tf_z_i = Linear(
-            template_feature_dim, c.d_pair, init="final"
+            256,
+            self.c.pair,
+            initializer="relu",
         )
         self.linear_tf_z_j = Linear(
-            template_feature_dim, c.d_pair, init="final"
+            256,
+            self.c.pair,
+            initializer="relu",
         )
-        
-        self.layer_norm_z = LayerNorm(c.d_pair)
-        
         self.linear_tf_m = Linear(
-            template_feature_dim, c.d_msa, init="final"
+            256,
+            self.c.msa,
+            initializer="relu",
         )
-        
-        self.layer_norm_m = LayerNorm(c.d_msa)
+        self.linear_t_p_i = Linear(
+            self.c.template.inf,
+            self.c.pair,
+            initializer="relu",
+        )
+        self.linear_t_p_j = Linear(
+            self.c.template.inf,
+            self.c.pair,
+            initializer="relu",
+        )
 
     def forward(self, batch):
-        """
-        Args:
-            batch:
-                A dictionary containing, among other things,
-                "template_features" and "template_pair_features"
-        Returns:
-            pair_activations:
-                [*, N_res, N_res, C_pair] template pair embeddings
-            msa_activations:
-                [*, N_res, N_res, C_msa] template msa embeddings
-        """
-        # [*, N_templ, N_res, N_res, C_t]
-        tf = batch["template_features"]
-        
-        # [*, N_templ, N_res, N_res, C_t]
-        tf = self.template_pair_embedder(tf)
-        
-        # [*, N_res, N_res, C_t]
-        tf = tf.sum(dim=-4)
-        
-        # [*, N_res, N_res, C_pair]
-        tf_emb_i = self.linear_tf_z_i(tf)
-        tf_emb_j = self.linear_tf_z_j(tf)
-        
-        pair_activations = self.layer_norm_z(tf_emb_i + tf_emb_j)
-        
-        # [*, N_res, N_res, C_msa]
-        # This is memory-intensive, so we do it sequentially.
-        tf_m = []
-        for i in range(tf.shape[-3]):
-            tf_m.append(self.linear_tf_m(tf[..., i, :, :]))
-        
-        tf_m = torch.stack(tf_m, dim=-4)
-        
-        msa_activations = self.layer_norm_m(tf_m)
+        # [*, N_res, N_res, c_t]
+        t = batch["template_pair_feat"]
+        t = self.template_pair_embedder(t)
 
-        return pair_activations, msa_activations
+        # [*, N_templ, N_res, c_m]
+        q = batch["template_pseudo_beta"]
+        q = q.view(
+            t.shape[:-3] + (-1, t.shape[-2], t.shape[-2], q.shape[-1])
+        )
+
+        # [*, N_templ, N_res, N_res, c_z]
+        t = self.template_pointwise_attention(t, q)
+        t = t.sum(dim=-4)
+
+        # [*, N_res, c_tf]
+        tf = batch["target_feat"]
+
+        # [*, N_res, 1, c_z]
+        tf_emb_i = self.linear_tf_z_i(tf).unsqueeze(-2)
+
+        # [*, 1, N_res, c_z]
+        tf_emb_j = self.linear_tf_z_j(tf).unsqueeze(-3)
+
+        # [*, N_res, c_m]
+        tf_emb_m = self.linear_tf_m(tf)
+
+        # [*, N_res, 1, c_z]
+        t_p_i = self.linear_t_p_i(t).unsqueeze(-2)
+
+        # [*, 1, N_res, c_z]
+        t_p_j = self.linear_t_p_j(t).unsqueeze(-3)
+
+        return t_p_i, t_p_j, tf_emb_i, tf_emb_j, tf_emb_m
