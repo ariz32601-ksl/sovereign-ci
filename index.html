@@ -2,42 +2,43 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Sovereign-CI | Autonomous DevOps Self-Healing Agent</title>
     <style>
         /* VITADAO / DESCI PALETTE */
         :root {
-            --bg-void: #0B0E14;      /* Deepest Void */
-            --bg-card: #141820;      /* Soft Card Surface */
-            --text-primary: #FFFFFF; /* Stark White */
-            --text-muted: #A0A0A0;   /* Tech Grey */
-            --accent-yellow: #F4F03F;/* VitaDAO Electric Yellow */
-            --accent-cyan: #00E5FF;  /* Future Cyan */
+            --bg-void: #0B0E14;
+            --bg-card: #141820;
+            --text-primary: #FFFFFF;
+            --text-muted: #A0A0A0;
+            --accent-yellow: #F4F03F;
+            --accent-cyan: #00E5FF;
             --border: #2A2E35;
             --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
-
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
             font-family: var(--font-main);
             background-color: var(--bg-void);
             color: var(--text-primary);
             margin: 0;
-            padding: 60px 20px;
+            padding: 40px 20px;
             line-height: 1.5;
         }
-
         .wrapper {
             max-width: 1000px;
             margin: 0 auto;
         }
-
         /* HEADER SECTION */
         header {
             border-bottom: 1px solid var(--border);
-            padding-bottom: 40px;
-            margin-bottom: 50px;
+            padding-bottom: 30px;
+            margin-bottom: 40px;
         }
-
         .brand-overline {
             font-size: 0.75rem;
             letter-spacing: 2px;
@@ -47,28 +48,25 @@
             margin-bottom: 10px;
             display: block;
         }
-
         h1 {
-            font-size: 3rem;
+            font-size: clamp(2rem, 5vw, 3rem);
             font-weight: 700;
             margin: 0 0 15px 0;
             letter-spacing: -1px;
         }
-
         .subtitle {
             font-size: 1.2rem;
             color: var(--text-muted);
             max-width: 700px;
             font-weight: 300;
         }
-
         /* BADGES */
         .badge-container {
             display: flex;
+            flex-wrap: wrap;
             gap: 12px;
             margin-top: 20px;
         }
-
         .badge {
             font-size: 0.7rem;
             font-weight: 700;
@@ -78,10 +76,8 @@
             border-radius: 4px;
             letter-spacing: 1px;
         }
-
         .badge.track { border-color: var(--accent-cyan); color: var(--accent-cyan); }
         .badge.status { background: var(--accent-yellow); color: #000; border-color: var(--accent-yellow); }
-
         /* GRID LAYOUT */
         .grid {
             display: grid;
@@ -90,19 +86,16 @@
             margin-bottom: 60px;
         }
         @media (min-width: 768px) { .grid { grid-template-columns: 1fr 1fr; } }
-
         .card {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            padding: 35px;
-            border-radius: 2px; /* Brutalist edge */
-            transition: transform 0.2s ease;
+            padding: 30px;
+            border-radius: 2px;
+            transition: transform 0.2s ease, border-color 0.2s ease;
         }
-
         .card:hover {
             border-color: var(--accent-cyan);
         }
-
         h2 {
             font-size: 1.4rem;
             font-weight: 600;
@@ -110,7 +103,6 @@
             margin-bottom: 20px;
             color: var(--text-primary);
         }
-
         /* LISTS & STEPS */
         ul { padding-left: 0; list-style: none; margin: 0; }
         li {
@@ -125,7 +117,6 @@
             left: 0;
             color: var(--accent-yellow);
         }
-
         .step {
             display: flex;
             align-items: center;
@@ -133,17 +124,17 @@
             padding: 15px;
             background: rgba(255,255,255,0.02);
             border-left: 2px solid var(--border);
+            transition: all 0.2s ease;
         }
         .step.active { border-left-color: var(--accent-yellow); background: rgba(244, 240, 63, 0.05); }
-
         .step-num {
             font-family: monospace;
             font-size: 1.2rem;
             color: var(--accent-yellow);
             margin-right: 20px;
             font-weight: bold;
+            min-width: 40px;
         }
-
         /* CODE BLOCK */
         pre {
             background: #000;
@@ -156,27 +147,25 @@
             border-left: 3px solid var(--accent-cyan);
         }
         code { color: var(--accent-cyan); }
-
         /* FOOTER BUTTONS */
         .cta-container {
             display: flex;
+            flex-wrap: wrap;
             gap: 20px;
             margin-top: 40px;
             border-top: 1px solid var(--border);
             padding-top: 40px;
         }
-
         .btn {
             display: inline-block;
-            padding: 14px 28px;
+            padding: 12px 24px;
             font-weight: 700;
             text-decoration: none;
             text-transform: uppercase;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             letter-spacing: 1px;
             transition: all 0.2s;
         }
-
         .btn-primary {
             background: var(--text-primary);
             color: #000;
@@ -187,7 +176,6 @@
             border-color: var(--accent-yellow);
             color: #000;
         }
-
         .btn-secondary {
             background: transparent;
             color: var(--text-primary);
@@ -196,8 +184,22 @@
         .btn-secondary:hover {
             border-color: var(--text-primary);
         }
-
         a { color: var(--text-primary); text-decoration: none; }
+        .footer-note {
+            margin-top: 30px;
+            padding-top: 20px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-align: center;
+            border-top: 1px solid var(--border);
+        }
+        @media (max-width: 640px) {
+            body { padding: 20px; }
+            .card { padding: 20px; }
+            .step { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .step-num { margin-right: 0; margin-bottom: 5px; }
+            .cta-container { flex-direction: column; align-items: stretch; text-align: center; }
+        }
     </style>
 </head>
 <body>
@@ -206,7 +208,6 @@
             <span class="brand-overline">Kunpeng Sovereign Lab // KSL</span>
             <h1>Sovereign-CI</h1>
             <div class="subtitle">Autonomous immune system for decentralized science infrastructure. Mitigating the 'Sparsity Tax' via agentic remediation.</div>
-            
             <div class="badge-container">
                 <span class="badge status">System Online</span>
                 <span class="badge track">GitLab Partner Track</span>
@@ -224,7 +225,6 @@
                     <li><strong>Architecture:</strong> Headless Self-Healing CI/CD</li>
                 </ul>
             </div>
-
             <div class="card">
                 <h2 style="color: var(--accent-cyan);">// The Strategic Value</h2>
                 <p style="color: var(--text-muted); margin: 0;">
@@ -254,7 +254,7 @@
         <div style="margin-top: 60px;">
             <h2>// Replication Protocol</h2>
             <pre><code># 1. Clone the ecosystem
-git clone github.com
+git clone https://github.com/ariz32601-ksl/sovereign-ci.git
 cd sovereign-ci
 
 # 2. Bind the secure endpoint
@@ -265,8 +265,11 @@ python3 src/sovereign_core/brain.py</code></pre>
         </div>
 
         <div class="cta-container">
-            <a href="gitlab.com" target="_blank" class="btn btn-primary">View Live Logs</a>
-            <a href="github.com" target="_blank" class="btn btn-secondary">Source Code</a>
+            <a href="https://gitlab.com/ksl-group/Sovereign-CI" target="_blank" class="btn btn-primary">View Live Logs</a>
+            <a href="https://github.com/ariz32601-ksl/sovereign-ci" target="_blank" class="btn btn-secondary">Source Code</a>
+        </div>
+        <div class="footer-note">
+            GITLAB is a trademark of GitLab Inc. in the United States and other countries and regions. This project is not affiliated, endorsed, sponsored, or approved by GitLab Inc.
         </div>
     </div>
 </body>
